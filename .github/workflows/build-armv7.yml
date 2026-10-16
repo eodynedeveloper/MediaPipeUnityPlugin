@@ -1,0 +1,39 @@
+name: Build Android AAR (armv7)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v0.14.3
+
+      - name: Build a Docker image
+        run: |
+          docker build --no-cache --build-arg UID=$(id -u) -t mediapipe_unity:latest . -f docker/linux/x86_64/Dockerfile
+
+      - name: Remove unused files to free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android
+
+      - name: Build armv7 (sin AudioClassifier)
+        run: |
+          docker run --rm \
+            --mount type=bind,src=$PWD/Packages,dst=/home/mediapipe/Packages \
+            --mount type=bind,src=$PWD/Assets,dst=/home/mediapipe/Assets \
+            mediapipe_unity:latest \
+            python build.py build \
+              --bazel_build_opts="--experimental_scale_timeouts=10.0 --http_timeout_scaling=10.0 --copt=-mfpu=neon" \
+              --android armv7 \
+              --android_ndk_api_level 21 \
+              --solutions hands pose \
+              -vv
+
+      - name: Upload mediapipe_android.aar (armv7)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mediapipe_android-armv7
+          path: Packages/com.github.homuler.mediapipe/Runtime/Plugins/Android/mediapipe_android.aar
