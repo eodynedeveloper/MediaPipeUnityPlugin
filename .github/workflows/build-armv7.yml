@@ -11,6 +11,10 @@ jobs:
         with:
           ref: v0.14.3
 
+      - name: Patch Dockerfile (get-pip para Python 3.9)
+        run: |
+          sed -i 's#https://bootstrap.pypa.io/get-pip.py#https://bootstrap.pypa.io/pip/3.9/get-pip.py#' docker/linux/x86_64/Dockerfile
+
       - name: Build a Docker image
         run: |
           docker build --no-cache --build-arg UID=$(id -u) -t mediapipe_unity:latest . -f docker/linux/x86_64/Dockerfile
